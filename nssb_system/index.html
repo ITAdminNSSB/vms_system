@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visitor Management System</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+		  body {
+            background-image: url(https://images.pexels.com/photos/1435752/pexels-photo-1435752.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1);
+			  background-size:cover;
+           
+        }
+        
+       
+        .tab-active {
+            background-color: #2563eb;
+            color: white;
+        }
+        
+        .tab-inactive {
+            background-color: #f3f4f6;
+            color: #374151;
+        }
+        
+        .tab-inactive:hover {
+            background-color: #e5e7eb;
+        }
+        
+        .btn-primary {
+            background-color: #2563eb;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .btn-primary:hover {
+            background-color: #1d4ed8;
+        }
+        
+        .btn-primary:disabled {
+            background-color: #93c5fd;
+            cursor: not-allowed;
+        }
+        
+        .date-input {
+            padding: 0.5rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            margin-right: 1rem;
+        }
+        
+        .category-select {
+            padding: 0.5rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            margin-right: 1rem;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+            color: #6b7280;
+        }
+        
+        .error-message {
+            display: none;
+            background-color: #fee2e2;
+            color: #991b1b;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .success-message {
+            display: none;
+            background-color: #dcfce7;
+            color: #166534;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+            border-radius: 0.5rem;
+            background-color: white;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+        
+        th {
+            background-color: #f9fafb;
+            padding: 0.75rem 1rem;
+            text-align: left;
+            font-size: 0.75rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            color: #6b7280;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        td {
+            padding: 0.75rem 1rem;
+            white-space: nowrap;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .status {
+            font-style: italic;
+            color: #6b7280;
+        }
+        
+        #lorryFilterContainer {
+            display: none;
+        }
+
+        .jotform-link {
+            color: #2563eb;
+            text-decoration: underline;
+            cursor: pointer;
+        }
+        
+        .jotform-link:hover {
+            color: #1d4ed8;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 py-6">
+            <div class="flex justify-between items-center flex-wrap gap-4">
+                <h1 class="text-3xl font-bold text-gray-900">Visitors and lorry drivers clock in clock out system management </h1>
+                <div class="flex items-center space-x-4">
+                    <button onclick="switchTab('visitors')" id="visitorsTab" class="flex items-center space-x-2 px-4 py-2 rounded-lg tab-active">
+                        <i data-lucide="users"></i>
+                        <span>Visitors</span>
+                    </button>
+                    <button onclick="switchTab('lorry')" id="lorryTab" class="flex items-center space-x-2 px-4 py-2 rounded-lg tab-inactive">
+                        <i data-lucide="truck"></i>
+                        <span>Lorry Drivers</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 py-6">
+        <!-- Date Filter -->
+        <div class="mb-6 flex items-center flex-wrap gap-4">
+            <input type="date" id="dateFilter" class="date-input">
+            <button onclick="setToday()" class="btn-primary">Today</button>
+            
+            <!-- Lorry Drivers Category Filter -->
+            <div id="lorryFilterContainer" class="flex items-center">
+                <select id="categoryFilter" class="category-select" onchange="loadRegistrationData()">
+                    <option value="">All Categories</option>
+                    <option value="nic">NIC</option>
+                    <option value="stamping">Stamping</option>
+                    <option value="ckd">CKD</option>
+                    <option value="assb">ASSB</option>
+                    <option value="suria">Suria</option>
+                    <option value="npsb">NPSB</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Messages -->
+        <div id="errorMessage" class="error-message"></div>
+        <div id="successMessage" class="success-message"></div>
+        <div id="loading" class="loading">Loading...</div>
+
+        <!-- Table -->
+        <div class="table-container">
+            <table>
+                <thead id="tableHeader">
+                    <!-- Header will be dynamically updated based on tab -->
+                </thead>
+                <tbody id="registrationData">
+                    <!-- Data will be inserted here -->
+                </tbody>
+            </table>
+        </div>
+    </main>
+<script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Constants for different endpoints
+        const ENDPOINTS = {
+            visitors: 'https://script.google.com/macros/s/AKfycby_BSY1odOvB2-7GuBD6_pasGP4KiY1InjAV-JL1yyW9MANYuJwiKSY5mpWlP7KRDP6/exec',
+            lorry: 'https://script.google.com/macros/s/AKfycbxENE1BZ9mFygnGElAFP2spQgD7V05baNroSF9paizLrV95NJ3C0nz-rIwCcJLS3bx3/exec' 
+        };
+        
+        let activeTab = 'visitors';
+        
+        // DOM Elements
+        const dateFilter = document.getElementById('dateFilter');
+        const errorDiv = document.getElementById('errorMessage');
+        const successDiv = document.getElementById('successMessage');
+        const loadingDiv = document.getElementById('loading');
+        const visitorsTab = document.getElementById('visitorsTab');
+        const lorryTab = document.getElementById('lorryTab');
+        const tableHeader = document.getElementById('tableHeader');
+        const lorryFilterContainer = document.getElementById('lorryFilterContainer');
+        const categoryFilter = document.getElementById('categoryFilter');
+
+        // Update table headers to include image column
+        function setTableHeaders() {
+            if (activeTab === 'visitors') {
+                tableHeader.innerHTML = `
+                    <tr>
+                        <th>Name</th>
+                        <th>Company</th>
+                        <th>Phone</th>
+                        <th>Purpose</th>
+                        <th>Check In</th>
+                        <th>Check Out</th>
+                        <th>Action</th>
+                    </tr>
+                `;
+                lorryFilterContainer.style.display = 'none';
+            } else {
+                tableHeader.innerHTML = `
+                    <tr>
+                        <th>Name</th>
+                        <th>Company</th>
+                        <th>Category</th>
+                        <th>Number Plate</th>
+                        <th>Check In</th>
+                        <th>Check Out</th>
+                        <th>Action</th>
+                        <th>Uploaded Image</th>
+                    </tr>
+                `;
+                lorryFilterContainer.style.display = 'flex';
+            }
+        }
+
+        // Add a function to handle image upload
+         function handleFileUpload(rowData) {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            
+            input.onchange = async (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                // Check file size (5MB limit)
+                if (file.size > 5 * 1024 * 1024) {
+                    showMessage('error', 'File size should be less than 5MB');
+                    return;
+                }
+
+                // Read file as base64
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    const base64Data = e.target.result.split(',')[1]; // Remove data:image/jpeg;base64,
+
+                    // Prepare form data for upload
+                    const formData = JSON.stringify({
+                        name: rowData.name,
+                        timestamp: rowData.timestamp,
+                        type: 'image_upload',
+                        file: base64Data
+                    });
+
+                    try {
+                        loadingDiv.style.display = 'block';
+                        
+                        // Use the same endpoint as before, but with image upload type
+                        const response = await fetch(ENDPOINTS[activeTab], {
+                            method: 'POST',
+                            body: formData
+                        });
+
+                        const result = await response.json();
+
+                        if (result.success) {
+                            showMessage('success', 'Image uploaded successfully!');
+                            loadRegistrationData(); // Refresh the table
+                        } else {
+                            throw new Error(result.message || 'Failed to upload image');
+                        }
+                    } catch (error) {
+                        showMessage('error', error.message || 'Network error. Please try again.');
+                    } finally {
+                        loadingDiv.style.display = 'none';
+                    }
+                };
+
+                // Read the file as base64
+                reader.readAsDataURL(file);
+            };
+
+            input.click();
+        }
+
+        // Set today's date as default
+        function setToday() {
+            const today = new Date();
+            dateFilter.value = today.toISOString().split('T')[0];
+            loadRegistrationData();
+        }
+
+        // Initialize
+        setToday();
+        dateFilter.addEventListener('change', loadRegistrationData);
+
+        // Switch between tabs
+        function switchTab(tab) {
+            activeTab = tab;
+            if (tab === 'visitors') {
+                visitorsTab.classList.remove('tab-inactive');
+                visitorsTab.classList.add('tab-active');
+                lorryTab.classList.remove('tab-active');
+                lorryTab.classList.add('tab-inactive');
+            } else {
+                lorryTab.classList.remove('tab-inactive');
+                lorryTab.classList.add('tab-active');
+                visitorsTab.classList.remove('tab-active');
+                visitorsTab.classList.add('tab-inactive');
+            }
+            setTableHeaders();
+            
+            // Reset category filter for lorry drivers
+            categoryFilter.value = '';
+            loadRegistrationData();
+        }
+
+        // Show message function
+        function showMessage(type, message, duration = 3000) {
+            const div = type === 'error' ? errorDiv : successDiv;
+            div.textContent = message;
+            div.style.display = 'block';
+            setTimeout(() => {
+                div.style.display = 'none';
+            }, duration);
+        }
+
+        // Format date
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            });
+        }
+
+        // Clock out function
+        async function clockOut(rowData) {
+            const timestamp = new Date(rowData.timestamp).toISOString();
+            const data = {
+                timestamp: timestamp,
+                clockOutTime: new Date().toLocaleString('en-US', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: false
+                }),
+                type: activeTab
+            };
+
+            // Specific handling for different tabs
+            if (activeTab === 'visitors') {
+                data.name = rowData.name;
+            } else {
+                // Lorry driver specific fields with flexible matching
+                data.name = rowData.name;
+                data.number_plate = rowData.number_plate || rowData.numberPlate;
+                data.category = rowData.category;
+                data.company = rowData.company;
+            }
+
+            try {
+                const response = await fetch(ENDPOINTS[activeTab], {
+                    method: 'POST',
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage('success', 'Successfully clocked out!');
+                    loadRegistrationData();
+                } else {
+                    throw new Error(result.message || 'Failed to clock out');
+                }
+            } catch (error) {
+                showMessage('error', error.message || 'Network error. Please try again.');
+            }
+        }
+
+        // Load registration data
+        async function loadRegistrationData() {
+            loadingDiv.style.display = 'block';
+            const tbody = document.getElementById('registrationData');
+            tbody.innerHTML = '';
+
+            try {
+                const response = await fetch(ENDPOINTS[activeTab]);
+                const data = await response.json();
+                const selectedDate = dateFilter.value;
+                const selectedCategory = activeTab === 'lorry' ? categoryFilter.value : null;
+                
+                const filteredData = data.filter(row => {
+                    const rowDate = new Date(row.timestamp);
+                    const dateMatch = formatDate(rowDate) === formatDate(selectedDate);
+                    
+                    // For lorry drivers, also filter by category if selected
+                    if (activeTab === 'lorry' && selectedCategory) {
+                        return dateMatch && (row.category || '').toLowerCase() === selectedCategory;
+                    }
+                    
+                    return dateMatch;
+                });
+
+                if (filteredData.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="${activeTab === 'visitors' ? 7 : 8}" class="text-center text-gray-500 py-4">
+                                No records found for the selected date${selectedCategory ? ` and category` : ''}
+                            </td>
+                        </tr>
+                    `;
+                } else {
+                    filteredData.forEach(row => {
+                        const tr = document.createElement('tr');
+                        const checkInTime = new Date(row.timestamp).toLocaleString();
+                        const checkOutTime = row.clockOutTime ? 
+                            new Date(row.clockOutTime).toLocaleString() : '-';
+
+                        if (activeTab === 'lorry') {
+                            tr.innerHTML = `
+                                <td>${row.name || '-'}</td>
+                                <td>${row.company || '-'}</td>
+                                <td>${row.category || '-'}</td>
+                                <td>${row.number_plate || '-'}</td>
+                                <td>${checkInTime}</td>
+                                <td>${checkOutTime}</td>
+                                <td>
+                                    ${!row.clockOutTime ? 
+                                        `<button onclick='clockOut(${JSON.stringify(row)})' class="btn-primary">
+                                            Clock Out
+                                        </button>` :
+                                        '<span class="status">Clocked Out</span>'
+                                    }
+                                </td>
+                                <td>
+                                    ${row.clockOutTime ? 
+                                        (row.imageUrl ? 
+                                            `<a href="${row.imageUrl}" target="_blank">
+                                                <img src="${row.imageUrl}" alt="Uploaded Image" class="w-20 h-20 object-cover" />
+                                            </a>` :
+                                            `<button onclick='handleFileUpload(${JSON.stringify(row)})' class="btn-primary">
+                                                Upload Image
+                                            </button>`
+                                        ) : 
+                                        '-'
+                                    }
+                                </td>
+                            `;
+                        } else {
+                            // Visitors tab rendering remains the same
+                            tr.innerHTML = `
+                                <td>${row.name || '-'}</td>
+                                <td>${row.company || '-'}</td>
+                                <td>${row.phone || '-'}</td>
+                                <td>${row.tujuan || '-'}</td>
+                                <td>${checkInTime}</td>
+                                <td>${checkOutTime}</td>
+                                <td>
+                                    ${!row.clockOutTime ? 
+                                        `<button onclick='clockOut(${JSON.stringify(row)})' class="btn-primary">
+                                            Clock Out
+                                        </button>` :
+                                        '<span class="status">Clocked Out</span>'
+                                    }
+                                </td>
+                            `;
+                        }
+                        tbody.appendChild(tr);
+                    });
+                }
+            } catch (error) {
+                showMessage('error', 'Failed to load registration data. Please refresh the page.');
+            } finally {
+                loadingDiv.style.display = 'none';
+            }
+        }
+
+        // Initial table headers
+        setTableHeaders();
+    </script>
+</body>
+</html>
